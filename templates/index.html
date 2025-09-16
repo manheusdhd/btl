@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Flask Messenger</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+    // Hàm nhắc tên khi click vào tên
+    function mentionName(name) {
+      let input = document.getElementById("message-input");
+      input.value = "@" + name + " " + input.value;
+      input.focus();
+    }
+
+    // Hàm chỉnh sửa tin nhắn
+    function editMessage(id, oldText) {
+      let input = document.getElementById("message-input");
+      let form = document.getElementById("chat-form");
+      input.value = oldText;
+      form.action = "/edit/" + id;   // gửi đến /edit/<id>
+      input.focus();
+    }
+  </script>
+</head>
+<body>
+  <div class="chat-container">
+    <header>
+      <h1>💬 Flask Messenger</h1>
+    </header>
+
+    <!-- Form gửi tin -->
+    <form id="chat-form" action="/send" method="post" class="chat-form">
+      <input name="name" placeholder="Tên (tùy)" value="{{ request.form.name or '' }}">
+      <input id="message-input" name="text" placeholder="Nhập tin nhắn..." required>
+      <button type="submit">Gửi</button>
+    </form>
+
+    <!-- Danh sách tin nhắn -->
+    <ul class="messages">
+      {% for m in messages %}
+        <li>
+          <strong onclick="mentionName('{{ m.name }}')">{{ m.name }}</strong>:
+          <span>{{ m.text }}</span>
+          <button class="edit-btn" onclick="editMessage({{ loop.index0 }}, '{{ m.text }}')">Sửa</button>
+        </li>
+      {% else %}
+        <li class="empty">Chưa có tin nhắn nào.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</body>
+</html>
