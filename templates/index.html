@@ -4,49 +4,88 @@
   <meta charset="utf-8">
   <title>Flask Messenger</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script>
-    // Hàm nhắc tên khi click vào tên
-    function mentionName(name) {
-      let input = document.getElementById("message-input");
-      input.value = "@" + name + " " + input.value;
-      input.focus();
-    }
-
-    // Hàm chỉnh sửa tin nhắn
-    function editMessage(id, oldText) {
-      let input = document.getElementById("message-input");
-      let form = document.getElementById("chat-form");
-      input.value = oldText;
-      form.action = "/edit/" + id;   // gửi đến /edit/<id>
-      input.focus();
-    }
-  </script>
 </head>
 <body>
-  <div class="chat-container">
-    <header>
-      <h1>💬 Flask Messenger</h1>
-    </header>
+  <div class="container">
+    <header><h1>💬 Flask Messenger</h1></header>
 
-    <!-- Form gửi tin -->
-    <form id="chat-form" action="/send" method="post" class="chat-form">
-      <input name="name" placeholder="Tên (tùy)" value="{{ request.form.name or '' }}">
-      <input id="message-input" name="text" placeholder="Nhập tin nhắn..." required>
-      <button type="submit">Gửi</button>
+    <!-- Form gửi / sửa -->
+    <form id="chat-form" action="/send" method="post" class="form">
+      <input id="name-input" name="name" placeholder="Tên (tùy)">
+      <input id="message-input" name="text" placeholder="Nhập tin nhắn..." required autocomplete="off">
+      <button id="send-btn" type="submit">Gửi</button>
+      <button id="cancel-edit-btn" type="button" class="btn-cancel" style="display:none">Hủy</button>
     </form>
 
     <!-- Danh sách tin nhắn -->
     <ul class="messages">
       {% for m in messages %}
-        <li>
-          <strong onclick="mentionName('{{ m.name }}')">{{ m.name }}</strong>:
-          <span>{{ m.text }}</span>
-          <button class="edit-btn" onclick="editMessage({{ loop.index0 }}, '{{ m.text }}')">Sửa</button>
-        </li>
+      <li data-id="{{ loop.index0 }}">
+        <div class="msg-left">
+          <strong class="name" data-name="{{ m.name }}">{{ m.name }}</strong>
+          <span class="colon">:</span>
+          <span class="text">{{ m.text }}</span>
+        </div>
+        <div class="controls">
+          <button class="edit-btn" title="Sửa">Sửa</button>
+          <form action="/delete/{{ loop.index0 }}" method="post" class="delete-form" onsubmit="return confirm('Xóa tin nhắn này?');">
+            <button type="submit" class="delete-btn" title="Xóa">Xóa</button>
+          </form>
+        </div>
+      </li>
       {% else %}
-        <li class="empty">Chưa có tin nhắn nào.</li>
+      <li class="empty">Chưa có tin nhắn nào.</li>
       {% endfor %}
     </ul>
   </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const chatForm = document.getElementById('chat-form');
+  const messageInput = document.getElementById('message-input');
+  const nameInput = document.getElementById('name-input');
+  const sendBtn = document.getElementById('send-btn');
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+
+  // Chức năng nhắc tên: click vào tên sẽ chèn @Tên vào ô nhập
+  document.querySelectorAll('.name').forEach(el => {
+    el.addEventListener('click', () => {
+      const n = el.dataset.name || '';
+      messageInput.value = '@' + n + (messageInput.value ? (' ' + messageInput.value) : ' ');
+      messageInput.focus();
+    });
+  });
+
+  // Chức năng Sửa: xử lý toàn bộ nút Sửa
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const li = btn.closest('li');
+      if (!li) return;
+      const id = li.dataset.id;
+      const textEl = li.querySelector('.text');
+      const text = textEl ? textEl.textContent.trim() : '';
+      // Đặt form sang chế độ edit
+      chatForm.action = '/edit/' + id;
+      messageInput.value = text;
+      sendBtn.textContent = 'Lưu';
+      cancelBtn.style.display = 'inline-block';
+      // Nếu muốn: set phím focus
+      messageInput.focus();
+    });
+  });
+
+  // Hủy sửa — trả về action ban đầu
+  cancelBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    chatForm.action = '/send';
+    messageInput.value = '';
+    sendBtn.textContent = 'Gửi';
+    cancelBtn.style.display = 'none';
+  });
+
+  // Khi submit form (gửi), sau redirect server sẽ load lại view => trạng thái form reset nhờ action /send
+});
+</script>
 </body>
 </html>
